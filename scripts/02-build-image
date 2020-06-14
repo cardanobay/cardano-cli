@@ -1,0 +1,114 @@
+#!/bin/sh
+
+set -e
+
+trap 'catch $? $LINENO' EXIT
+
+usage() {
+  echo "Usage: $0 --cli_version <version> [OPTIONS]"
+  echo "  Build the Cardano CLI container."
+  echo ""
+  echo "Available options:"
+  echo "  --cli_version*  The cardano-cli binary version [Default: N/A] [Example: 1.13.0]"
+  echo "  --tag*          The cardano-cli container tag [Default: none] [Example: latest, 1.13.0]"
+  echo "  --user_name     The cardano-cli user name [Default: cardano-cli]"
+  echo "  --user_id       The cardano-cli user id [Default: 256]"
+  echo "  --group_name    The cardano-cli group name [Default: cardano-cli]"
+  echo "  --group_id      The cardano-cli group id [Default: 256]"
+  echo "  --agent         Which agent to use to build the container [Default: docker] [docker|buildah]"
+  echo "  --help          Display this message"
+  echo " * = mandatory options"
+  exit 0
+}
+
+catch() {
+  if [ "$1" != "0" ]; then
+    echo "An error has occured. Abording."
+    exit 0
+  fi
+}
+
+help=${help:-false}
+cli_version=${cli_version:-}
+tag=${tag:-}
+user_name=${user_name:-cardano-cli}
+user_id=${user_id:-256}
+group_name=${GROUP_NAME:-cardano-cli}
+group_id=${group_id:-256}
+port=${port:-3001}
+agent=${agent:-docker}
+
+while [ $# -gt 0 ]; do
+   if [[ $1 == *"--"* ]]; then
+        param="${1/--/}"
+        declare $param="$2" 2>/dev/null
+   fi
+  shift
+done
+
+if [ "$help" != false ]; then
+  usage
+fi
+
+if [ -z "$cli_version" ]; then
+  usage
+fi
+
+if [ -z "$tag" ]; then
+  usage
+fi
+
+build_path="${PWD}/${tag}/"
+
+echo ""
+echo "Verify the options before continuing :"
+echo ""
+echo "cli_version   : $cli_version"
+echo "tag           : $tag"
+echo "user_name     : $user_name"
+echo "user_id       : $user_id"
+echo "group_name    : $group_name"
+echo "group_id      : $group_id"
+echo "agent         : $agent"
+echo "build_path    : $build_path"
+echo ""
+
+read -n 1 -s -r -p "Press any key to continue"
+echo ""
+
+if [ ! -x "$(command -v ${agent})" ]; then
+  echo "Error: agent '${agent}' not found in \$PATH"
+  exit 1
+fi
+
+if [ ! -d "${build_path}" ]; then
+  echo "Build path ${build_path} doesn't exist"
+  exit 0
+fi
+
+tag="cardano-cli:${tag}"
+
+echo "Cleaning local repository ${tag}..."
+set +e
+${agent} rmi "localhost/${tag}" 2>/dev/null
+set -e
+
+echo "Building image ${tag}..."
+
+case "${agent}" in
+   "docker")
+      docker build --tag ${tag} \
+	           --build-arg NODE_VERSION=${cli_version} --build-arg USER_NAME=${user_name} --build-arg USER_ID=${user_id} \
+	           --build-arg GROUP_NAME=${group_name} --build-arg GROUP_ID=${group_id} \
+		   --build-arg PORT=${port} ${build_path}
+      ;;
+   "buildah")
+      buildah bud  --layers --tag ${tag} \
+	           --build-arg NODE_VERSION=${cli_version} --build-arg USER_NAME=${user_name} --build-arg USER_ID=${user_id} \
+	           --build-arg GROUP_NAME=${group_name} --build-arg GROUP_ID=${group_id} \
+		   --build-arg PORT=${port} ${build_path}
+      ;;
+esac
+
+echo "Image built ${tag}..."
+${agent} images | grep -i "cardano-cli"
