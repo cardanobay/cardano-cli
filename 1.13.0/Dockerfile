@@ -30,9 +30,6 @@ RUN cp --parents -f /usr/sbin/nologin ../ \
  && echo "root:x:0:" > group \
  && echo "${GROUP_NAME}:x:${GROUP_ID}:" >> group
 
-# ADD THE SERVICES LIST FILES, REQUIRED BY THE CARDANO CLI BINARY
-RUN cp -f /etc/services .
-
 # ADD THE CARDANO CLI BINARY
 WORKDIR /build/rootfs/usr/local/bin
 RUN wget https://github.com/cardanobay/cardano-cli/releases/download/${CLI_VERSION}/cardano-cli.tar.xz \
@@ -64,7 +61,6 @@ COPY --from=builder /build/rootfs/ /
 
 # RUN AS UNPRIVILEGED USER BY DEFAULT
 USER ${USER_NAME}
-EXPOSE ${PORT}/tcp
 
 # FORCE CARDANO CLI COMMAND 
 ENTRYPOINT ["cardano-cli"]
