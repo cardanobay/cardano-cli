@@ -6,7 +6,7 @@
 
 ## How to use the CLI ?
 
-You can grab the latest fully statically linked cardano-cli in our [release page](https://github.com/cardanobay/cardano-cli/releases), or run it inside our very small container.
+You can grab the latest [fully statically linked binary](https://github.com/cardanobay/cardano-builder) in our [release page](https://github.com/cardanobay/cardano-cli/releases), or run it inside our very small container.
 The container is based on [the scratch image](https://hub.docker.com/_/scratch "The Scratch Image"), which is basically **an empty image**.
 
 ### Pulling the container
